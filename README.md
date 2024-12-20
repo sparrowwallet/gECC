@@ -3,7 +3,7 @@
 ## Introduction
 This project presents gECC, a versatile framework for ECC optimized for GPU architectures, specifically engineered to achieve high-throughput performance in EC operations. To maximize throughput, gECC incorporates batch-based execution (using Montgomery’s trick) of EC operations and microarchitecture-level optimization of modular arithmetic.
 
-Copyright (C) 2024, [STCS & CGCL](http://grid.hust.edu.cn/) and [Huazhong University of Science and Technology](https://www.hust.edu.cn/).
+Copyright (C) 2024, [BDTS/STCS/CGCL](http://grid.hust.edu.cn/) and [Huazhong University of Science and Technology](https://www.hust.edu.cn/).
 
 ## Files
 | Files | description | 
