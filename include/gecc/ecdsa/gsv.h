@@ -797,12 +797,12 @@ __global__ void kernel_DataParallelMTA(typename EC::Base *sign_k_inv,
   // __syncthreads();
 
   // inverse step
-  // inv_chain_inv = inv_chain.inverse();
+  inv_chain_inv = inv_chain.inverse();
   // inv_chain_inv = inv_chain;
-  if(slot_idx % 32 == 0)
-    inv_chain_inv = inv_chain_inv.inverse();
+  // if(slot_idx % 32 == 0)
+  //   inv_chain_inv = inv_chain_inv.inverse();
   // __syncwarp();
-  __syncthreads();
+  // __syncthreads();
   // inv_chain_inv.store(acc_chain + buc_index * EC::BaseField::LIMBS, 0, 0, lane_idx);
   
   // uncompress step
@@ -824,6 +824,95 @@ __global__ void kernel_DataParallelMTA(typename EC::Base *sign_k_inv,
     }
     // get the inv of scalar
     scalar_inv = inv_chain_inv * inv_chain; // scalar_inv
+    scalar.load_arbitrary(sign_k, count, buc_index, lane_idx);
+    // get the inv of inv_chain
+    inv_chain_inv = inv_chain_inv * scalar;
+    scalar_inv.store_arbitrary(sign_k_inv, count, buc_index, lane_idx);
+  }
+}
+
+template <typename EC, typename ECDSA_Solver>
+__global__ void kernel_GASMTA(typename EC::Base *sign_k_inv,
+                                        typename EC::Base *sign_k,
+                                        typename EC::Base *acc_chain,
+                                        u32 count
+                                        ) {
+  using Layout = typename EC::Layout;
+  const u32 lane_idx = Layout::lane_idx();
+  const u32 slot_idx = Layout::slot_idx();
+  const u32 gbl_t = Layout::global_slot_idx();
+
+  typename EC::BaseField inv_chain_tmp, inv_chain_inv;
+  typename EC::BaseField scalar, scalar_inv;
+  extern __shared__ typename EC::BaseField inv_chain[]; //size 256+128+64+32;
+  
+  // compress step
+  inv_chain_tmp = EC::BaseField::mont_one();
+  int32_t buc_index = gbl_t;
+  for (; buc_index < count; buc_index += (gridDim.x * blockDim.x / Layout::WIDTH)) {
+    scalar.load_arbitrary(sign_k, count, buc_index, lane_idx);
+    inv_chain_tmp = inv_chain_tmp * scalar;
+    #ifdef GECC_QAPW_OPT_COLUMN_MAJORED_INPUTS
+      inv_chain_tmp.store_arbitrary(acc_chain, count, buc_index, lane_idx);
+    #else
+      inv_chain_tmp.store(acc_chain + buc_index * EC::BaseField::LIMBS, 0, 0, lane_idx);
+    #endif
+  }
+  inv_chain[slot_idx * EC::Layout::WIDTH + lane_idx] = inv_chain_tmp;
+  __syncthreads();
+
+  // inverse step
+  // get inv 256T -> 32T
+  u32 inv_out_offset = blockDim.x;
+  u32 inv_input_offset = 0;
+  for (u32 j = blockDim.x / 2; j > 0; j /= 2) {
+    for(u32 t = slot_idx; t < j; t += j) {
+      inv_chain[(inv_out_offset + t) * EC::Layout::WIDTH + lane_idx] = 
+            inv_chain[(inv_input_offset + t) * EC::Layout::WIDTH + lane_idx] * 
+            inv_chain[(inv_input_offset + t + j) * EC::Layout::WIDTH + lane_idx];
+    }
+    inv_input_offset += j*2;
+    inv_out_offset += j;
+    __syncthreads();
+  }
+  if(slot_idx == 0) {
+    inv_chain[(inv_out_offset - 1 + slot_idx) * EC::Layout::WIDTH + lane_idx] = inv_chain[(inv_out_offset - 1 + slot_idx) * EC::Layout::WIDTH + lane_idx].inverse();
+  }
+  __syncthreads();
+
+  for( u32 j = 1; j < blockDim.x; j *= 2) {
+    inv_out_offset -= j;
+    inv_input_offset -= j*2;
+    for(u32 t = slot_idx; t < j; t += j) {
+      typename EC::BaseField a = inv_chain[(inv_input_offset + t) * EC::Layout::WIDTH + lane_idx];
+      inv_chain[(inv_input_offset + t) * EC::Layout::WIDTH + lane_idx] = 
+          inv_chain[(inv_input_offset + t + j) * EC::Layout::WIDTH + lane_idx] * 
+          inv_chain[(inv_out_offset + t) * EC::Layout::WIDTH + lane_idx];
+      inv_chain[(inv_input_offset + t + j) * EC::Layout::WIDTH + lane_idx] = 
+          a * inv_chain[(inv_out_offset + t) * EC::Layout::WIDTH + lane_idx];
+    }
+    __syncthreads();
+  }
+
+  // uncompress step
+  inv_chain_inv = inv_chain[slot_idx * EC::Layout::WIDTH + lane_idx];
+  u32 multiple = count / (gridDim.x * blockDim.x);
+  u32 end_buc_index = multiple * (gridDim.x * blockDim.x) + gbl_t;
+  if (end_buc_index >= count && multiple > 0)
+    end_buc_index -= (gridDim.x * blockDim.x);
+  buc_index = end_buc_index;
+
+  for (; buc_index < count && buc_index >= 0; buc_index -= (gridDim.x * blockDim.x)) {
+    inv_chain_tmp = EC::BaseField::mont_one();
+    if (buc_index > gbl_t) {
+      #ifdef GECC_QAPW_OPT_COLUMN_MAJORED_INPUTS
+        inv_chain_tmp.load_arbitrary(acc_chain, count, (buc_index - (gridDim.x * blockDim.x)), lane_idx);
+      #else
+        inv_chain_tmp.load(acc_chain + (buc_index - (gridDim.x * blockDim.x)) * EC::BaseField::LIMBS, 0, 0, lane_idx);
+      #endif
+    }
+    // get the inv of scalar
+    scalar_inv = inv_chain_inv * inv_chain_tmp; // scalar_inv
     scalar.load_arbitrary(sign_k, count, buc_index, lane_idx);
     // get the inv of inv_chain
     inv_chain_inv = inv_chain_inv * scalar;
@@ -1024,7 +1113,8 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     cudaGetDeviceProperties(&device_prop, current_device);
     MAX_SM_NUMS = device_prop.multiProcessorCount;
     MAX_PersistingL2CacheSize = device_prop.persistingL2CacheMaxSize;
-    printf("GPU Type: %s, SM_COUNT: %d PersistingL2CacheMaxSize %dMB\n", device_prop.name, MAX_SM_NUMS, MAX_PersistingL2CacheSize>>20);
+    accessPolicyMaxWindowSize = device_prop.accessPolicyMaxWindowSize;
+    printf("GPU Type: %s, SM_COUNT: %d PersistingL2CacheMaxSize %dMB, accessPolicyMaxWindowSize %dMB\n", device_prop.name, MAX_SM_NUMS, MAX_PersistingL2CacheSize>>20, accessPolicyMaxWindowSize>>20);
     cudaDeviceSynchronize();
     if (cudaPeekAtLastError() != cudaSuccess) {
       printf("Initilize Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
@@ -1484,17 +1574,18 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     #ifdef PERSISTENT_L2_CACHE
       // u32 needed_bytes_pers_l2_cahce_size = 25<<20; // 25MB
       u32 needed_bytes_pers_l2_cahce_size = verify_count * EC::BaseField::SIZE;
+      u32 setted_pers_l2_cahce_size = max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, accessPolicyMaxWindowSize));
       // needed_bytes_pers_l2_cahce_size = 2 * verify_count * EC::BaseField::SIZE;
-      cudaDeviceSetLimit(cudaLimitPersistingL2CacheSize, max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)));
+      // cudaDeviceSetLimit(cudaLimitPersistingL2CacheSize, min(needed_bytes_pers_l2_cahce_size, accessPolicyMaxWindowSize));
       cudaStreamAttrValue stream_attribute_thrashing;
       stream_attribute_thrashing.accessPolicyWindow.base_ptr =
           reinterpret_cast<void*>(acc_chain);
           // reinterpret_cast<void*>(verify_s);
       // stream_attribute_thrashing.accessPolicyWindow.num_bytes =
       //     min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize);
-      stream_attribute_thrashing.accessPolicyWindow.num_bytes =
-          max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize));
+      stream_attribute_thrashing.accessPolicyWindow.num_bytes = setted_pers_l2_cahce_size;
       stream_attribute_thrashing.accessPolicyWindow.hitRatio = 1.0;
+      // stream_attribute_thrashing.accessPolicyWindow.hitRatio = min(setted_pers_l2_cahce_size, MAX_PersistingL2CacheSize)*1.0/needed_bytes_pers_l2_cahce_size;
       // stream_attribute_thrashing.accessPolicyWindow.hitRatio = MAX_PersistingL2CacheSize*1.0/max(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize);
       stream_attribute_thrashing.accessPolicyWindow.hitProp =
           cudaAccessPropertyPersisting;
@@ -1504,7 +1595,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
           0, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
-      printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
+      // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS policy window size: %d MB), hitRatio %.2f\n", setted_pers_l2_cahce_size>>20, needed_bytes_pers_l2_cahce_size >> 20, accessPolicyMaxWindowSize >> 20, stream_attribute_thrashing.accessPolicyWindow.hitRatio);
     #endif
       cudaDeviceSynchronize();
   }
@@ -1552,14 +1643,24 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
 
   void batch_modinv_MTA(u32 block_num = 480, u32 max_thread_per_block = 512) {
     // auto f_start = std::chrono::high_resolution_clock::now();
+  #ifdef BATCHMINVWITHDP
     kernel_DataParallelMTA<EC, ECDSASolver><<<block_num, max_thread_per_block, 0, 0>>>(verify_s, verify_t, acc_chain, verify_count);
     cudaDeviceSynchronize();
     if (cudaPeekAtLastError() != cudaSuccess) {
       printf("batch modinv with MTA in data parallel Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
     }
+  #endif
     // auto f_end = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double> f_diff = f_end - f_start;
     // printf("kernel_DataParallelMTA Kernel time: %lf ms\t\n", f_diff.count()*1000);
+  #ifdef BATCHMINVWITHGAS
+    u32 sharedMemSize = Field::SIZE * max_thread_per_block * 2;
+    kernel_GASMTA<EC, ECDSASolver><<<block_num, max_thread_per_block, sharedMemSize, 0>>>(verify_s, verify_t, acc_chain, verify_count);
+    cudaDeviceSynchronize();
+    if (cudaPeekAtLastError() != cudaSuccess) {
+      printf("batch modinv with MTA in GAS model Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
+    }
+  #endif
   }
 
   void ec_pmul_close() {

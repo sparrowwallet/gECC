@@ -19,7 +19,7 @@ void test_modinv_in_data_parallel() {
   // MAX_SM_NUMS=80: i=[12,17]+6
   // MAX_SM_NUMS=108: i=[12,17]+6
   // MAX_SM_NUMS=128: i=[11,16]+7
-  for (int i = 10; i <= 20; i++) {
+  for (int i = 10; i <= 18; i++) {
     count = MAX_SM_NUMS * (1<<i); //1<<18 ~ 1<<23
     printf("--------------------------- %u (~1<< %d) --------------------------\n", count, ((int)log2(MAX_SM_NUMS)) + i);
 
@@ -35,7 +35,7 @@ void test_modinv_in_data_parallel() {
       for (u32 thread_num = 256; thread_num <= 256; thread_num *= 2) {
         if(block_num * thread_num > count) continue;
         double min_elapsed = support::timeit(
-          5, 5, [&]() {
+          10, 100, [&]() {
             solver.batch_modinv_MTA(block_num, thread_num);
         });
         cudaDeviceSynchronize();

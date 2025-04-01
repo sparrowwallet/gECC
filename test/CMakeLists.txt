@@ -68,11 +68,18 @@ target_compile_definitions(ecdsa_ec_unknown_pmul_bk2_test PRIVATE -DOVERFLOW)
 target_compile_definitions(ecdsa_ec_unknown_pmul_bk2_test PRIVATE -DSPPARK_32)
 target_compile_definitions(ecdsa_ec_unknown_pmul_bk2_test PRIVATE -DBATCH_UPMUL_NO_OPT)
 
-##Breakdown-3: batch-upmul: kernel-fusion optimization
+# ##Breakdown-3: batch-upmul: kernel-fusion optimization
 add_gecc_test(ecdsa_ec_unknown_pmul_bk3 ecdsa_ec_unknown_pmul.cu)
 # cuda_target_compile_options(ecdsa_ec_unknown_pmul_bk3_test ON)
 target_compile_definitions(ecdsa_ec_unknown_pmul_bk3_test PRIVATE -DOVERFLOW)
 target_compile_definitions(ecdsa_ec_unknown_pmul_bk3_test PRIVATE -DSPPARK_32)
+
+##Breakdown-3-5: batch-upmul: kernel-fusion optimization
+add_gecc_test(ecdsa_ec_unknown_pmul_bk3-5 ecdsa_ec_unknown_pmul.cu)
+# cuda_target_compile_options(ecdsa_ec_unknown_pmul_bk3_test ON)
+target_compile_definitions(ecdsa_ec_unknown_pmul_bk3-5_test PRIVATE -DOVERFLOW)
+target_compile_definitions(ecdsa_ec_unknown_pmul_bk3-5_test PRIVATE -DSPPARK_32)
+target_compile_definitions(ecdsa_ec_unknown_pmul_bk3-5_test PRIVATE -DPERSISTENT_L2_CACHE)
 
 ##Breakdown-4: batch-upmul: kernel-fusion optimization + memory management
 add_gecc_test(ecdsa_ec_unknown_pmul_bk4 ecdsa_ec_unknown_pmul.cu)
@@ -99,9 +106,16 @@ target_compile_definitions(ecdsa_ec_fixed_pmul_bk2_test PRIVATE -DBATCH_UPMUL_NO
 
 ##Breakdown-3: batch-fpmul: kernel-fusion optimization
 add_gecc_test(ecdsa_ec_fixed_pmul_bk3 ecdsa_ec_fixed_pmul.cu)
-# cuda_target_compile_options(ecdsa_ec_fixed_pmul_bk3_test ON)
+# # cuda_target_compile_options(ecdsa_ec_fixed_pmul_bk3_test ON)
 target_compile_definitions(ecdsa_ec_fixed_pmul_bk3_test PRIVATE -DOVERFLOW)
 target_compile_definitions(ecdsa_ec_fixed_pmul_bk3_test PRIVATE -DSPPARK_32)
+
+##Breakdown-3-5: batch-fpmul: kernel-fusion optimization + L2cache opt
+add_gecc_test(ecdsa_ec_fixed_pmul_bk3-5 ecdsa_ec_fixed_pmul.cu)
+# # cuda_target_compile_options(ecdsa_ec_fixed_pmul_bk3-5_test ON)
+target_compile_definitions(ecdsa_ec_fixed_pmul_bk3-5_test PRIVATE -DOVERFLOW)
+target_compile_definitions(ecdsa_ec_fixed_pmul_bk3-5_test PRIVATE -DSPPARK_32)
+target_compile_definitions(ecdsa_ec_fixed_pmul_bk3-5_test PRIVATE -DPERSISTENT_L2_CACHE)
 
 ##Breakdown-4: batch-fpmul: kernel-fusion optimization + memory management
 add_gecc_test(ecdsa_ec_fixed_pmul_bk4 ecdsa_ec_fixed_pmul.cu)
@@ -112,7 +126,14 @@ target_compile_definitions(ecdsa_ec_fixed_pmul_bk4_test PRIVATE -DGECC_QAPW_OPT_
 target_compile_definitions(ecdsa_ec_fixed_pmul_bk4_test PRIVATE -DPERSISTENT_L2_CACHE)
 
 #Profiling: batch modinv in data parallel
-# add_gecc_test(modinv_data_parallel_profiling modinv_data_parallel_profiling.cu)
+add_gecc_test(modinv_data_parallel_profiling modinv_data_parallel_profiling.cu)
 # cuda_target_compile_options(modinv_data_parallel_profiling_test ON)
-# target_compile_definitions(modinv_data_parallel_profiling_test PRIVATE -DOVERFLOW)
-# target_compile_definitions(modinv_data_parallel_profiling_test PRIVATE -DSPPARK_32)
+target_compile_definitions(modinv_data_parallel_profiling_test PRIVATE -DOVERFLOW)
+target_compile_definitions(modinv_data_parallel_profiling_test PRIVATE -DSPPARK_32)
+target_compile_definitions(modinv_data_parallel_profiling_test PRIVATE -DBATCHMINVWITHDP) ## batch modinvs with data parallel model
+
+add_gecc_test(modinv_GAS_profiling modinv_data_parallel_profiling.cu)
+# cuda_target_compile_options(modinv_data_parallel_profiling_test ON)
+target_compile_definitions(modinv_GAS_profiling_test PRIVATE -DOVERFLOW)
+target_compile_definitions(modinv_GAS_profiling_test PRIVATE -DSPPARK_32)
+target_compile_definitions(modinv_GAS_profiling_test PRIVATE -DBATCHMINVWITHGAS) ## batch modinvs with GAS model

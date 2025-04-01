@@ -23,6 +23,7 @@ static const u32 MAX_THREADS = 1024;
 static const u32 MAX_BITS = 1024;
 static u32 MAX_SM_NUMS = 80;
 static u32 MAX_PersistingL2CacheSize = 40;
+static u32 accessPolicyMaxWindowSize = 30;
 
 // TODO: support blockDim > 65536
 __device__ __forceinline__ static u32 block_idx() { return blockIdx.x; }

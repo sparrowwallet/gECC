@@ -19,7 +19,7 @@ void test_ecdsa_ec_fixed_pmul() {
   // MAX_SM_NUMS=80: i=[12,17]+6
   // MAX_SM_NUMS=108: i=[12,17]+6
   // MAX_SM_NUMS=128: i=[11,16]+7
-  for (int i = 13; i <= 16; i++) {
+  for (int i = 11; i <= 16; i++) {
     count = MAX_SM_NUMS * (1<<i); //1<<18 ~ 1<<23
     printf("--------------------------- %u (%d << %d) --------------------------\n", count, MAX_SM_NUMS, i);
 
