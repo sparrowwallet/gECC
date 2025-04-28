@@ -1,9 +1,21 @@
 # lib gECC
 
 ## Introduction
-This project presents gECC, a versatile framework for ECC optimized for GPU architectures, specifically engineered to achieve high-throughput performance in EC operations. To maximize throughput, gECC incorporates batch-based execution (using Montgomery’s trick) of EC operations and microarchitecture-level optimization of modular arithmetic. For more details, please refer to our preprint [gECC](https://arxiv.org/abs/2501.03245) available on arXiv.
+This project presents gECC, a versatile framework for ECC optimized for GPU architectures, specifically engineered to achieve high-throughput performance in EC operations. To maximize throughput, gECC incorporates batch-based execution (using Montgomery’s trick) of EC operations and microarchitecture-level optimization of modular arithmetic. 
 
 Copyright (C) 2024, [BDTS/STCS/CGCL](http://grid.hust.edu.cn/) and [Huazhong University of Science and Technology](https://www.hust.edu.cn/).
+
+## 📄 Publication
+Our work on **gECC** has been **accepted to appear** in *ACM Transactions on Architecture and Code Optimization (TACO)*. 
+
+- Title: "gECC: A GPU-based high-throughput framework for Elliptic Curve Cryptography"
+- Authors: Qian Xiong, Weiliang Ma, Xuanhua Shi, Yongluan Zhou, Hai Jin, Kaiyi Huang, Haozhou Wang, Zhengru Wang
+- Journal: ACM Transactions on Architecture and Code Optimization (TACO)
+- Status: Accepted, to appear
+- Preprint: [gECC](https://arxiv.org/abs/2501.03245) available on arXiv
+
+📢 We will update the final version and BibTeX entry once the paper is published online.
+
 
 ## Files
 | Files | description | 
