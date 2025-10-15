@@ -277,19 +277,19 @@ if __name__ == '__main__':
     with open(root / 'fp_constants.h', 'w') as f:
         crepr_64 = CRepr()
         crepr_64.width = 64
-        f.write(crepr_64.fp_constant(field.Fq_SM2) + '\n')
-        f.write(crepr_64.fp_constant(field.Fq_SM2_n) + '\n')
+        f.write(crepr_64.fp_constant(field.Fq_SECP256K1) + '\n')
+        f.write(crepr_64.fp_constant(field.Fq_SECP256K1_n) + '\n')
 
     with open(root / 'ec_constants.h', 'w') as f:
         crepr_64 = CRepr()
         crepr_64.width = 64
-        f.write(crepr_64.ec_constant(ec.G1_SM2) + '\n')
+        f.write(crepr_64.ec_constant(ec.G1_SECP256K1) + '\n')
         # f.write(crepr_64.ec_constant(ec.G1_ECDSA_VERIFY) + '\n')
 
     with open(root / 'ecdsa_constants.h', 'w') as f:
         crepr_64 = CRepr()
         crepr_64.width = 64
-        f.write(crepr_64.ecdsa_constant(ec.G1_SM2) + '\n')
+        f.write(crepr_64.ecdsa_constant(ec.G1_SECP256K1) + '\n')
         # f.write(crepr_64.ecdsa_constant(ec.G1_ECDSA_VERIFY) + '\n')
 
     with open(root / 'fp_ops_cc_details.h', 'w') as f:
@@ -348,12 +348,12 @@ if __name__ == '__main__':
 
     # tests
     with open(root / 'fp_test_constants.h', 'w') as f:
-        generate_fp_test(f, field.Fq_SM2.name, field.Fq_SM2, 6, field.Fq_SM2.width)
-        generate_fp_test(f, field.Fq_SM2_n.name, field.Fq_SM2_n, 6, field.Fq_SM2_n.width)
+        generate_fp_test(f, field.Fq_SECP256K1.name, field.Fq_SECP256K1, 6, field.Fq_SECP256K1.width)
+        generate_fp_test(f, field.Fq_SECP256K1_n.name, field.Fq_SECP256K1_n, 6, field.Fq_SECP256K1_n.width)
 
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(
-            f, field.Fq_SM2_n, field.Fq_SM2_n.width)
+            f, field.Fq_SECP256K1_n, field.Fq_SECP256K1_n.width)
         # generate_ecdsa_test(
-        #     f, field.Fq_SM2, ec.G1_SM2, field.Fq_SM2.width)
+        #     f, field.Fq_SECP256K1, ec.G1_SECP256K1, field.Fq_SECP256K1.width)

@@ -306,7 +306,7 @@ __device__ __forceinline__ FpT operator*(const FpT &b) const {
     return mont_multiply_cios(b.digits);
   }
   else if (mont_flag == MONTFLAG::SOS) {
-    if (curve_flag == CURVEFLAG::SM2)
+    if (curve_flag == CURVEFLAG::SECP256K1)
       return mont_multiply_sos_sm2(b.digits);
     else
       return mont_multiply_sos(b.digits);
@@ -319,7 +319,7 @@ __device__ __forceinline__ FpT mont_multiply(const Base *o,
     return mont_multiply_cios(o, stride);
   }
   else if (mont_flag == MONTFLAG::SOS) {
-    if (curve_flag == CURVEFLAG::SM2)
+    if (curve_flag == CURVEFLAG::SECP256K1)
       return mont_multiply_sos_sm2(o, stride);
     else
       return mont_multiply_sos(o, stride);

@@ -13,7 +13,7 @@
   using FP_NAME =                                                              \
       FpT<FP_NAME##Factory, gecc::arith::constants::FP_TYPE, FP_NAME##DCONST>
 
-#define DEFINE_SM2_FP(FP_NAME, FP_TYPE, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT, LIMBS, MONT_FLAG, CURVE_FLAG)                 \
+#define DEFINE_SECP256K1_FP(FP_NAME, FP_TYPE, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT, LIMBS, MONT_FLAG, CURVE_FLAG)                 \
   using FP_NAME##Factory =                                                     \
       gecc::arith::FpFactory<gecc::arith::DigitT<DIGIT_TYPE, DIGIT_WIDTH>, LAYOUT, LIMBS>;  \
   __device__ __constant__ FP_NAME##Factory::Constant FP_NAME##DCONST;          \
@@ -48,7 +48,7 @@ enum MONTFLAG {
 
 enum CURVEFLAG {
   DEFAULT,
-  SM2,
+  SECP256K1,  // Optimized for secp256k1 curve (formerly SM2)
 };
 
 template <typename D, typename L, u32 N> struct FpFactory {

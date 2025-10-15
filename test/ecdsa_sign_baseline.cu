@@ -94,10 +94,10 @@ void test_ecdsa_sign() {
 
 
 // TODO OPT
-DEFINE_SM2_FP(Fq_SM2_1, FqSM2, u32, 32, LayoutT<1>, 8, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::SM2);
-// DEFINE_FP(Fq_SM2_1, FqSM2, u32, 32, LayoutT<1>, 8);
-DEFINE_FP(Fq_SM2_n, FqSM2_n, u32, 32, LayoutT<1>, 8);
-DEFINE_EC(G1_1, G1SM2, Fq_SM2_1, SM2_CURVE, 2);
-DEFINE_ECDSA(ECDSA_solver, G1_1_G1SM2, Fq_SM2_1, Fq_SM2_n);
+DEFINE_SECP256K1_FP(Fq_SECP256K1_1, FqSECP256K1, u32, 32, LayoutT<1>, 8, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::SECP256K1);
+// DEFINE_FP(Fq_SECP256K1_1, FqSECP256K1, u32, 32, LayoutT<1>, 8);
+DEFINE_FP(Fq_SECP256K1_n, FqSECP256K1_n, u32, 32, LayoutT<1>, 8);
+DEFINE_EC(G1_1, G1SECP256K1, Fq_SECP256K1_1, SECP256K1_CURVE, 2);
+DEFINE_ECDSA(ECDSA_solver, G1_1_G1SECP256K1, Fq_SECP256K1_1, Fq_SECP256K1_n);
 TEST(ECDSA, Correctness) { test_ecdsa_sign_correctness<ECDSA_solver>(); }  
 TEST(ECDSA, Performance) { test_ecdsa_sign<ECDSA_solver>(); }  

@@ -1,4 +1,4 @@
-from constants import SM2_q, SM2_n
+from constants import SECP256K1_q, SECP256K1_n
 
 import random
 
@@ -187,5 +187,5 @@ class Fp2:
         a, b = x
         return (self.fp.to_mont(a), self.fp.to_mont(b))
 
-Fq_SM2 = Fp('FqSM2', SM2_q, 64, rexp=4)
-Fq_SM2_n = Fp('FqSM2_n', SM2_n, 64, rexp=4)
+Fq_SECP256K1 = Fp('FqSECP256K1', SECP256K1_q, 64, rexp=4)
+Fq_SECP256K1_n = Fp('FqSECP256K1_n', SECP256K1_n, 64, rexp=4)

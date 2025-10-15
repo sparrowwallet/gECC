@@ -155,14 +155,14 @@ template <typename Field> void test_fp(size_t N,
   cudaFree(out);
 }
 
-#define ADD_FqSM2_FP_TEST(FIELD, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT_WIDTH, LIMBS)       \
-  DEFINE_SM2_FP(FIELD, FqSM2, DIGIT_TYPE, DIGIT_WIDTH, LayoutT<LAYOUT_WIDTH>, LIMBS, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::SM2);     \
-  TEST(FqSM2256K1_FP, FIELD##Correctness) { using namespace FqSM2_fp_test; test_fp<FIELD>(N, A, B, SUM, PROD); }
+#define ADD_FqSECP256K1_FP_TEST(FIELD, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT_WIDTH, LIMBS)       \
+  DEFINE_SECP256K1_FP(FIELD, FqSECP256K1, DIGIT_TYPE, DIGIT_WIDTH, LayoutT<LAYOUT_WIDTH>, LIMBS, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::SECP256K1);     \
+  TEST(FqSECP256K1_FP, FIELD##Correctness) { using namespace FqSECP256K1_fp_test; test_fp<FIELD>(N, A, B, SUM, PROD); }
 
-#define ADD_FqSM2_n_FP_TEST(FIELD, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT_WIDTH, LIMBS)       \
-  DEFINE_FP(FIELD, FqSM2_n, DIGIT_TYPE, DIGIT_WIDTH, LayoutT<LAYOUT_WIDTH>, LIMBS);     \
-  TEST(FqSM2_FP_n, FIELD##Correctness) { using namespace FqSM2_n_fp_test; test_fp<FIELD>(N, A, B, SUM, PROD); }
+#define ADD_FqSECP256K1_n_FP_TEST(FIELD, DIGIT_TYPE, DIGIT_WIDTH, LAYOUT_WIDTH, LIMBS)       \
+  DEFINE_FP(FIELD, FqSECP256K1_n, DIGIT_TYPE, DIGIT_WIDTH, LayoutT<LAYOUT_WIDTH>, LIMBS);     \
+  TEST(FqSECP256K1_FP_n, FIELD##Correctness) { using namespace FqSECP256K1_n_fp_test; test_fp<FIELD>(N, A, B, SUM, PROD); }
 
 
-ADD_FqSM2_FP_TEST(Field_SM2, u32, 32, 1, 8)
-ADD_FqSM2_n_FP_TEST(Field_SM2_n, u32, 32, 1, 8)
+ADD_FqSECP256K1_FP_TEST(Field_SECP256K1, u32, 32, 1, 8)
+ADD_FqSECP256K1_n_FP_TEST(Field_SECP256K1_n, u32, 32, 1, 8)

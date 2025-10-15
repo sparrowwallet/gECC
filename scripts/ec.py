@@ -171,10 +171,10 @@ class EC:
     def to_mont(self, p):
         return (type(p))(map(self.field.to_mont, p))
 
-G1_SM2 = EC('G1SM2', field.Fq_SM2,
-                constants.SM2_g1_a, constants.SM2_g1_b, generator=constants.SM2_g1_generator)
-G1_ECDSA_VERIFY = EC('G1ECDSA_VERIFY', field.Fq_SM2, 
-                constants.SM2_g1_a, constants.SM2_g1_b, generator=constants.ECDSA_Verify_g1_generator)
+G1_SECP256K1 = EC('G1SECP256K1', field.Fq_SECP256K1,
+                constants.SECP256K1_g1_a, constants.SECP256K1_g1_b, generator=constants.SECP256K1_g1_generator)
+G1_ECDSA_VERIFY = EC('G1ECDSA_VERIFY', field.Fq_SECP256K1,
+                constants.SECP256K1_g1_a, constants.SECP256K1_g1_b, generator=constants.ECDSA_Verify_g1_generator)
 
 def test_ec(self, ec):
     affine_p = ec.random_element()
