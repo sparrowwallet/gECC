@@ -9,6 +9,10 @@ endmacro()
 add_gecc_test(fp fp.cu)
 # cuda_target_compile_options(fp_test ON)
 
+add_gecc_test(ec_ops ec_ops.cu)
+# cuda_target_compile_options(ec_ops_test ON)
+target_compile_definitions(ec_ops_test PRIVATE -DSPPARK_32)
+
 # ----------------------------------- signature generation ---------------------------------------------
 ##Breakdown 1: sig_gen: rapid_ec:sig_gen + opt_modmul 
 add_gecc_test(ecdsa_sign_bk1 ecdsa_sign_baseline.cu)

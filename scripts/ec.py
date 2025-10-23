@@ -57,7 +57,8 @@ class EC:
     def double_jacobian(self, p):
         (X1, Y1, Z1) = p
         local_vars = locals()
-        EC_DBL_2.pyexec(globals(), local_vars)
+        # For secp256k1 (a=0), use EC_DBL_1 instead of EC_DBL_2 (which is for a=-3)
+        EC_DBL_1.pyexec(globals(), local_vars)
         return (local_vars['X3'], local_vars['Y3'], local_vars['Z3'])
 
     def double_affine(self, p):
@@ -119,10 +120,8 @@ class EC:
         if self.is_zero_affine(p):
             return self.zero_jacobian()
         (x, y) = p
-        z = self.field.random_nonzero_element()
-        z2 = self.field.mul(z, z)
-        z3 = self.field.mul(z2, z)
-        return (self.field.mul(x, z2), self.field.mul(y, z3), z)
+        # Use Z=1 for standard affine->Jacobian conversion (matching GPU implementation)
+        return (x, y, self.field.one())
 
     def negate_jacobian(self, p):
         (x, y, z) = p

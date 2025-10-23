@@ -204,6 +204,80 @@ def generate_ecdsa_test(out, f, width):
     out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
         n, crepr.fp_array(random_key_y)))
 
+def generate_ec_test(out, curve, width):
+    """Generate test vectors for EC operations"""
+    crepr = CRepr()
+    crepr.width = width
+
+    out.write('// Test vectors for EC operations on secp256k1\n')
+    out.write('// Generated with fixed random seed for reproducibility\n\n')
+
+    # Test 1: Point addition - two distinct random points (use Jacobian arithmetic)
+    p1 = curve.random_element()
+    p2 = curve.random_element()
+    p1_jac = curve.to_jacobian(p1)
+    p2_jac = curve.to_jacobian(p2)
+    p3_jac = curve.add_jacobian(p1_jac, p2_jac)
+    p3 = curve.get_xy(p3_jac)
+
+    out.write('// Test 1: Point Addition (P1 + P2 = P3)\n')
+    out.write('static const uint64_t EC_P1_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p1[0])))
+    out.write('static const uint64_t EC_P1_Y[MAX_LIMBS] = {};\n'.format(crepr.fp(p1[1])))
+    out.write('static const uint64_t EC_P2_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p2[0])))
+    out.write('static const uint64_t EC_P2_Y[MAX_LIMBS] = {};\n'.format(crepr.fp(p2[1])))
+    out.write('static const uint64_t EC_P1_PLUS_P2_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p3[0])))
+    out.write('static const uint64_t EC_P1_PLUS_P2_Y[MAX_LIMBS] = {};\n\n'.format(crepr.fp(p3[1])))
+
+    # Test 2: Point doubling (use Jacobian arithmetic for consistency with GPU)
+    p4 = curve.random_element()
+    p4_jac = curve.to_jacobian(p4)
+    p5_jac = curve.double_jacobian(p4_jac)
+    p5 = curve.get_xy(p5_jac)
+
+    out.write('// Test 2: Point Doubling (2*P4 = P5)\n')
+    out.write('static const uint64_t EC_P4_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p4[0])))
+    out.write('static const uint64_t EC_P4_Y[MAX_LIMBS] = {};\n'.format(crepr.fp(p4[1])))
+    out.write('static const uint64_t EC_P4_DOUBLED_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p5[0])))
+    out.write('static const uint64_t EC_P4_DOUBLED_Y[MAX_LIMBS] = {};\n\n'.format(crepr.fp(p5[1])))
+
+    # Test 3: Scalar multiplication (arbitrary point)
+    p_base = curve.random_element()
+    scalar1 = random.randint(1, curve.field.p - 1)
+    p_jac = curve.to_jacobian(p_base)
+    p_result_jac = curve.multiply_jacobian(p_jac, scalar1)
+    p_result = curve.get_xy(p_result_jac)
+
+    out.write('// Test 3: Scalar Multiplication of arbitrary point (scalar1 * P_base = P_result)\n')
+    out.write('static const uint64_t EC_SCALAR1[MAX_LIMBS] = {};\n'.format(crepr.fp(scalar1)))
+    out.write('static const uint64_t EC_P_BASE_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p_base[0])))
+    out.write('static const uint64_t EC_P_BASE_Y[MAX_LIMBS] = {};\n'.format(crepr.fp(p_base[1])))
+    out.write('static const uint64_t EC_P_SCALAR_RESULT_X[MAX_LIMBS] = {};\n'.format(crepr.fp(p_result[0])))
+    out.write('static const uint64_t EC_P_SCALAR_RESULT_Y[MAX_LIMBS] = {};\n\n'.format(crepr.fp(p_result[1])))
+
+    # Test 4: Generator point multiplication
+    g = curve.generator
+    scalar2 = random.randint(1, curve.field.p - 1)
+    g_jac = curve.to_jacobian(g)
+    g_result_jac = curve.multiply_jacobian(g_jac, scalar2)
+    g_result = curve.get_xy(g_result_jac)
+
+    out.write('// Test 4: Generator Point Multiplication (scalar2 * G = G_result)\n')
+    out.write('static const uint64_t EC_SCALAR2[MAX_LIMBS] = {};\n'.format(crepr.fp(scalar2)))
+    out.write('static const uint64_t EC_G_X[MAX_LIMBS] = {};\n'.format(crepr.fp(g[0])))
+    out.write('static const uint64_t EC_G_Y[MAX_LIMBS] = {};\n'.format(crepr.fp(g[1])))
+    out.write('static const uint64_t EC_G_SCALAR_RESULT_X[MAX_LIMBS] = {};\n'.format(crepr.fp(g_result[0])))
+    out.write('static const uint64_t EC_G_SCALAR_RESULT_Y[MAX_LIMBS] = {};\n\n'.format(crepr.fp(g_result[1])))
+
+    # Test 5: Small scalar multiplications of generator
+    out.write('// Test 5: Small scalar multiplications of generator\n')
+    for k in [2, 3, 5, 10]:
+        g_jac = curve.to_jacobian(g)
+        result_jac = curve.multiply_jacobian(g_jac, k)
+        result = curve.get_xy(result_jac)
+        out.write('static const uint64_t EC_G_TIMES_{}_X[MAX_LIMBS] = {};\n'.format(k, crepr.fp(result[0])))
+        out.write('static const uint64_t EC_G_TIMES_{}_Y[MAX_LIMBS] = {};\n'.format(k, crepr.fp(result[1])))
+    out.write('\n')
+
 
 # def generate_ecdsa_test(out, f, ec, width):
 #     e = 0x10D51CB90C0C0522E94875A2BEA7AB72299EBE7192E64EFE0573B1C77110E5C9
@@ -351,6 +425,8 @@ if __name__ == '__main__':
         generate_fp_test(f, field.Fq_SECP256K1.name, field.Fq_SECP256K1, 6, field.Fq_SECP256K1.width)
         generate_fp_test(f, field.Fq_SECP256K1_n.name, field.Fq_SECP256K1_n, 6, field.Fq_SECP256K1_n.width)
 
+    with open(root / 'ec_test_constants.h', 'w') as f:
+        generate_ec_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width)
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(

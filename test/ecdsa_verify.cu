@@ -107,7 +107,7 @@ void test_ecdsa_verify() {
 
 DEFINE_SECP256K1_FP(Fq_SECP256K1_1, FqSECP256K1, u32, 32, LayoutT<1>, 8, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::DEFAULT);
 DEFINE_FP(Fq_SECP256K1_n, FqSECP256K1_n, u32, 32, LayoutT<1>, 8);
-DEFINE_EC(G1_1, G1SECP256K1, Fq_SECP256K1_1, SECP256K1_CURVE, 2);
+DEFINE_EC(G1_1, G1SECP256K1, Fq_SECP256K1_1, SECP256K1_CURVE, 1);
 DEFINE_ECDSA(ECDSA_Verify_Solver, G1_1_G1SECP256K1, Fq_SECP256K1_1, Fq_SECP256K1_n);
 TEST(ECDSA, Correctness) { test_ecdsa_verify_correctness<ECDSA_Verify_Solver>(); }  
 TEST(ECDSA, Performance) { test_ecdsa_verify<ECDSA_Verify_Solver>(); } 
