@@ -204,6 +204,75 @@ def generate_ecdsa_test(out, f, width):
     out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
         n, crepr.fp_array(random_key_y)))
 
+def generate_batch_add_test(out, curve, width, num_tests=10):
+    """Generate test vectors for batch point addition"""
+    import random
+    random.seed(44)  # Different seed from other batch tests
+
+    crepr = CRepr()
+    crepr.width = width
+
+    out.write('// Test vectors for batch point addition on secp256k1\n')
+    out.write('// Generated for correctness testing\n\n')
+    out.write(f'#define BATCH_ADD_NUM_TESTS {num_tests}\n\n')
+
+    points1_x = []
+    points1_y = []
+    points2_x = []
+    points2_y = []
+    results_x = []
+    results_y = []
+
+    for i in range(num_tests):
+        # Generate two random points
+        point1 = curve.random_element()
+        point2 = curve.random_element()
+
+        # Compute point addition using Python reference implementation
+        p1_jac = curve.to_jacobian(point1)
+        p2_jac = curve.to_jacobian(point2)
+        result_jac = curve.add_jacobian(p1_jac, p2_jac)
+        result = curve.get_xy(result_jac)
+
+        points1_x.append(point1[0])
+        points1_y.append(point1[1])
+        points2_x.append(point2[0])
+        points2_y.append(point2[1])
+        results_x.append(result[0])
+        results_y.append(result[1])
+
+    # Output as C arrays
+    out.write('static const uint64_t BATCH_ADD_POINTS1_X[][MAX_LIMBS] = {\n')
+    for px in points1_x:
+        out.write(f'  {crepr.fp(px)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_ADD_POINTS1_Y[][MAX_LIMBS] = {\n')
+    for py in points1_y:
+        out.write(f'  {crepr.fp(py)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_ADD_POINTS2_X[][MAX_LIMBS] = {\n')
+    for px in points2_x:
+        out.write(f'  {crepr.fp(px)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_ADD_POINTS2_Y[][MAX_LIMBS] = {\n')
+    for py in points2_y:
+        out.write(f'  {crepr.fp(py)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_ADD_EXPECTED_X[][MAX_LIMBS] = {\n')
+    for rx in results_x:
+        out.write(f'  {crepr.fp(rx)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_ADD_EXPECTED_Y[][MAX_LIMBS] = {\n')
+    for ry in results_y:
+        out.write(f'  {crepr.fp(ry)},\n')
+    out.write('};\n')
+
+
 def generate_batch_fpmul_test(out, curve, width, num_tests=10):
     """Generate test vectors for batch fixed-point scalar multiplication"""
     import random
@@ -550,6 +619,9 @@ if __name__ == '__main__':
 
     with open(root / 'batch_fpmul_test_constants.h', 'w') as f:
         generate_batch_fpmul_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
+
+    with open(root / 'batch_add_test_constants.h', 'w') as f:
+        generate_batch_add_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(
