@@ -9,6 +9,7 @@ import pathlib
 import random
 
 import math
+import hashlib
 
 
 class CRepr:
@@ -525,6 +526,152 @@ def generate_ec_test(out, curve, width):
 #     out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
 #         n, crepr.fp_array(random_key_y)))
 
+def generate_sha256_test(out, curve, num_tests=10):
+    """Generate test vectors for SHA-256"""
+    import random
+    random.seed(55)  # Different seed for SHA-256 tests
+
+    out.write('// Test vectors for SHA-256\n')
+    out.write('// Including standard test vectors and EC point hashing\n\n')
+
+    # Standard SHA-256 test vectors from NIST/official sources
+    standard_tests = [
+        ("", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+        ("abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"),
+        ("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"),
+        ("The quick brown fox jumps over the lazy dog",
+         "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"),
+        ("The quick brown fox jumps over the lazy dog.",
+         "ef537f25c895bfa782526529a9b63d97aa631564d5d789c2b765448c8635fb6c"),
+    ]
+
+    out.write(f'#define SHA256_NUM_STANDARD_TESTS {len(standard_tests)}\n\n')
+
+    # Output standard test inputs
+    out.write('static const uint8_t* SHA256_STANDARD_INPUTS[] = {\n')
+    for msg, _ in standard_tests:
+        escaped_msg = msg.replace('"', '\\"')
+        out.write(f'  (const uint8_t*)"{escaped_msg}",\n')
+    out.write('};\n\n')
+
+    # Output standard test input lengths
+    out.write('static const uint64_t SHA256_STANDARD_INPUT_LENS[] = {\n')
+    for msg, _ in standard_tests:
+        out.write(f'  {len(msg)},\n')
+    out.write('};\n\n')
+
+    # Output expected hashes
+    out.write('static const char* SHA256_STANDARD_EXPECTED[] = {\n')
+    for _, hash_hex in standard_tests:
+        out.write(f'  "{hash_hex}",\n')
+    out.write('};\n\n')
+
+    # Generate EC point test vectors (64 bytes: 32-byte x || 32-byte y)
+    out.write(f'#define SHA256_EC_NUM_TESTS {num_tests}\n\n')
+
+    ec_points = []
+    ec_hashes = []
+
+    for i in range(num_tests):
+        # Generate random EC point
+        point = curve.random_element()
+        x, y = point
+
+        # Convert to 32-byte big-endian representation
+        x_bytes = x.to_bytes(32, byteorder='big')
+        y_bytes = y.to_bytes(32, byteorder='big')
+        point_bytes = x_bytes + y_bytes
+
+        # Compute SHA-256 hash
+        hash_digest = hashlib.sha256(point_bytes).hexdigest()
+
+        ec_points.append(point_bytes)
+        ec_hashes.append(hash_digest)
+
+    # Output EC points as byte arrays
+    out.write('static const uint8_t SHA256_EC_POINTS[][64] = {\n')
+    for point_bytes in ec_points:
+        out.write('  {')
+        for i, byte in enumerate(point_bytes):
+            if i > 0:
+                out.write(',')
+            if i % 16 == 0:
+                out.write('\n    ')
+            out.write(f'0x{byte:02x}')
+        out.write('\n  },\n')
+    out.write('};\n\n')
+
+    # Output expected hashes
+    out.write('static const char* SHA256_EC_EXPECTED[] = {\n')
+    for hash_hex in ec_hashes:
+        out.write(f'  "{hash_hex}",\n')
+    out.write('};\n\n')
+
+def generate_batch_pmul_sha256_test(out, curve, width, num_tests=10):
+    """Generate test vectors for batch scalar multiplication followed by SHA-256"""
+    import random
+    random.seed(66)  # Different seed for this test
+
+    crepr = CRepr()
+    crepr.width = width
+
+    out.write('// Test vectors for batch scalar multiplication followed by SHA-256\n')
+    out.write('// Each test computes: hash = SHA256(scalar * point)\n\n')
+    out.write(f'#define BATCH_PMUL_SHA256_NUM_TESTS {num_tests}\n\n')
+
+    points_x = []
+    points_y = []
+    scalars = []
+    hashes = []
+
+    for i in range(num_tests):
+        # Generate random point
+        point = curve.random_element()
+
+        # Generate random scalar (use smaller scalars for reasonable test execution time)
+        scalar = random.randint(1, 2**128)
+
+        # Compute scalar multiplication using Python reference implementation
+        point_jac = curve.to_jacobian(point)
+        result_jac = curve.multiply_jacobian(point_jac, scalar)
+        result = curve.get_xy(result_jac)
+
+        # Convert result to 32-byte big-endian representation
+        x_bytes = result[0].to_bytes(32, byteorder='big')
+        y_bytes = result[1].to_bytes(32, byteorder='big')
+        point_bytes = x_bytes + y_bytes
+
+        # Compute SHA-256 hash
+        hash_digest = hashlib.sha256(point_bytes).hexdigest()
+
+        points_x.append(point[0])
+        points_y.append(point[1])
+        scalars.append(scalar)
+        hashes.append(hash_digest)
+
+    # Output as C arrays
+    out.write('static const uint64_t BATCH_PMUL_SHA256_POINTS_X[][MAX_LIMBS] = {\n')
+    for px in points_x:
+        out.write(f'  {crepr.fp(px)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_PMUL_SHA256_POINTS_Y[][MAX_LIMBS] = {\n')
+    for py in points_y:
+        out.write(f'  {crepr.fp(py)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_PMUL_SHA256_SCALARS[][MAX_LIMBS] = {\n')
+    for s in scalars:
+        out.write(f'  {crepr.fp(s)},\n')
+    out.write('};\n\n')
+
+    # Output expected hashes
+    out.write('static const char* BATCH_PMUL_SHA256_EXPECTED[] = {\n')
+    for hash_hex in hashes:
+        out.write(f'  "{hash_hex}",\n')
+    out.write('};\n\n')
+
 random.seed(233)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -622,6 +769,12 @@ if __name__ == '__main__':
 
     with open(root / 'batch_add_test_constants.h', 'w') as f:
         generate_batch_add_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
+
+    with open(root / 'sha256_test_constants.h', 'w') as f:
+        generate_sha256_test(f, ec.G1_SECP256K1, num_tests=10)
+
+    with open(root / 'batch_pmul_sha256_test_constants.h', 'w') as f:
+        generate_batch_pmul_sha256_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(

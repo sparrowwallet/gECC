@@ -25,6 +25,13 @@ add_gecc_test(batch_ec_add_correctness batch_ec_add_correctness.cu)
 # cuda_target_compile_options(batch_ec_add_correctness_test ON)
 target_compile_definitions(batch_ec_add_correctness_test PRIVATE -DSPPARK_32)
 
+add_gecc_test(sha256 sha256_test.cu)
+# cuda_target_compile_options(sha256_test ON)
+
+add_gecc_test(batch_pmul_sha256 batch_pmul_sha256_test.cu)
+# cuda_target_compile_options(batch_pmul_sha256_test ON)
+target_compile_definitions(batch_pmul_sha256_test PRIVATE -DSPPARK_32)
+
 # ----------------------------------- signature generation ---------------------------------------------
 ##Breakdown 1: sig_gen: rapid_ec:sig_gen + opt_modmul 
 add_gecc_test(ecdsa_sign_bk1 ecdsa_sign_baseline.cu)
