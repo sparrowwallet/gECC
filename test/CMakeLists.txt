@@ -13,6 +13,10 @@ add_gecc_test(ec_ops ec_ops.cu)
 # cuda_target_compile_options(ec_ops_test ON)
 target_compile_definitions(ec_ops_test PRIVATE -DSPPARK_32)
 
+add_gecc_test(batch_ec_pmul_correctness batch_ec_pmul_correctness.cu)
+# cuda_target_compile_options(batch_ec_pmul_correctness_test ON)
+target_compile_definitions(batch_ec_pmul_correctness_test PRIVATE -DSPPARK_32)
+
 # ----------------------------------- signature generation ---------------------------------------------
 ##Breakdown 1: sig_gen: rapid_ec:sig_gen + opt_modmul 
 add_gecc_test(ecdsa_sign_bk1 ecdsa_sign_baseline.cu)
