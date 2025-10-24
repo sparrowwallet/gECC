@@ -204,6 +204,60 @@ def generate_ecdsa_test(out, f, width):
     out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
         n, crepr.fp_array(random_key_y)))
 
+def generate_batch_fpmul_test(out, curve, width, num_tests=10):
+    """Generate test vectors for batch fixed-point scalar multiplication"""
+    import random
+    random.seed(43)  # Different seed from batch_pmul_test
+
+    crepr = CRepr()
+    crepr.width = width
+
+    out.write('// Test vectors for batch fixed-point scalar multiplication on secp256k1\n')
+    out.write('// All tests use the generator G as the fixed base point\n')
+    out.write('// Generated for correctness testing\n\n')
+    out.write(f'#define BATCH_FPMUL_NUM_TESTS {num_tests}\n\n')
+
+    # Use the generator as the fixed base point
+    base_point = curve.generator
+
+    out.write('// Fixed base point (generator G)\n')
+    out.write(f'static const uint64_t BATCH_FPMUL_BASE_POINT_X[MAX_LIMBS] = {crepr.fp(base_point[0])};\n')
+    out.write(f'static const uint64_t BATCH_FPMUL_BASE_POINT_Y[MAX_LIMBS] = {crepr.fp(base_point[1])};\n\n')
+
+    scalars = []
+    results_x = []
+    results_y = []
+
+    for i in range(num_tests):
+        # Generate random scalar (use smaller scalars for reasonable test execution time)
+        scalar = random.randint(1, 2**128)
+
+        # Compute scalar multiplication using Python reference implementation
+        base_jac = curve.to_jacobian(base_point)
+        result_jac = curve.multiply_jacobian(base_jac, scalar)
+        result = curve.get_xy(result_jac)
+
+        scalars.append(scalar)
+        results_x.append(result[0])
+        results_y.append(result[1])
+
+    # Output as C arrays
+    out.write('static const uint64_t BATCH_FPMUL_SCALARS[][MAX_LIMBS] = {\n')
+    for s in scalars:
+        out.write(f'  {crepr.fp(s)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_FPMUL_EXPECTED_X[][MAX_LIMBS] = {\n')
+    for rx in results_x:
+        out.write(f'  {crepr.fp(rx)},\n')
+    out.write('};\n\n')
+
+    out.write('static const uint64_t BATCH_FPMUL_EXPECTED_Y[][MAX_LIMBS] = {\n')
+    for ry in results_y:
+        out.write(f'  {crepr.fp(ry)},\n')
+    out.write('};\n')
+
+
 def generate_batch_pmul_test(out, curve, width, num_tests=10):
     """Generate test vectors for batch scalar multiplication"""
     import random
@@ -493,6 +547,9 @@ if __name__ == '__main__':
 
     with open(root / 'batch_pmul_test_constants.h', 'w') as f:
         generate_batch_pmul_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
+
+    with open(root / 'batch_fpmul_test_constants.h', 'w') as f:
+        generate_batch_fpmul_test(f, ec.G1_SECP256K1, field.Fq_SECP256K1.width, num_tests=10)
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(
