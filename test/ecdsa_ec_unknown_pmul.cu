@@ -56,8 +56,102 @@ void test_ecdsa_ec_unknown_pmul() {
   
 }
 
+// Correctness test with debug output
+template <typename ECDSA_EC_PMUL_Solver>
+void test_ecdsa_ec_unknown_pmul_correctness() {
+  u32 count = 3;  // Test with just 3 samples for easy verification
+
+  ECDSA_EC_PMUL_Solver solver;
+  ECDSA_EC_PMUL_Solver::initialize();
+
+  printf("=== ECDSA EC Unknown Point Multiplication Correctness Test ===\n");
+  printf("Testing %u point multiplications\n\n", count);
+
+  // Initialize with test data
+  solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+
+  // Print inputs (first 3 samples)
+  printf("Input scalars (s):\n");
+  for (u32 i = 0; i < count; i++) {
+    printf("  s[%u] = ", i);
+    for (int j = 3; j >= 0; j--) {  // Print in big-endian order
+      printf("%016llx", (unsigned long long)RANDOM_S[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  printf("Input point X coordinates:\n");
+  for (u32 i = 0; i < count; i++) {
+    printf("  x[%u] = ", i);
+    for (int j = 3; j >= 0; j--) {
+      printf("%016llx", (unsigned long long)RANDOM_KEY_X[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  printf("Input point Y coordinates:\n");
+  for (u32 i = 0; i < count; i++) {
+    printf("  y[%u] = ", i);
+    for (int j = 3; j >= 0; j--) {
+      printf("%016llx", (unsigned long long)RANDOM_KEY_Y[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  // Perform the computation
+  solver.ecdsa_ec_pmul(MAX_SM_NUMS, 256, true);
+  cudaDeviceSynchronize();
+
+  // Get results back from device
+  using Field = typename ECDSA_EC_PMUL_Solver::Field;
+  const int field_limbs = Field::LIMBS_PER_LANE;
+
+  uint32_t *h_result_x = new uint32_t[count * field_limbs];
+  uint32_t *h_result_y = new uint32_t[count * field_limbs];
+
+  // Results are stored in interleaved format in R0: X0, Y0, X1, Y1, X2, Y2, ...
+  // solver.R0 is allocated with cudaMallocManaged, so we can access it directly from host
+  for (u32 i = 0; i < count; i++) {
+    memcpy(h_result_x + i * field_limbs, solver.R0 + i * field_limbs * 2, field_limbs * sizeof(uint32_t));
+    memcpy(h_result_y + i * field_limbs, solver.R0 + i * field_limbs * 2 + field_limbs, field_limbs * sizeof(uint32_t));
+  }
+
+  printf("\nOutput result X coordinates (in Montgomery form):\n");
+  for (u32 i = 0; i < count; i++) {
+    printf("  result_x[%u] = ", i);
+    for (int j = 7; j >= 0; j--) {  // u32 limbs, big-endian
+      printf("%08x", h_result_x[i * field_limbs + j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  printf("Output result Y coordinates (in Montgomery form):\n");
+  for (u32 i = 0; i < count; i++) {
+    printf("  result_y[%u] = ", i);
+    for (int j = 7; j >= 0; j--) {
+      printf("%08x", h_result_y[i * field_limbs + j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  printf("=== Verification ===\n");
+  printf("To verify these results, update scripts/verify_gpu_output.py with the values above\n");
+  printf("and run: cd scripts && python3 verify_gpu_output.py\n\n");
+
+  delete[] h_result_x;
+  delete[] h_result_y;
+  solver.ec_pmul_close();
+}
+
 DEFINE_SECP256K1_FP(Fq_SECP256K1_1, FqSECP256K1, u32, 32, LayoutT<1>, 8, gecc::arith::MONTFLAG::SOS, gecc::arith::CURVEFLAG::DEFAULT);
 DEFINE_FP(Fq_SECP256K1_n, FqSECP256K1_n, u32, 32, LayoutT<1>, 8);
 DEFINE_EC(G1_1, G1SECP256K1, Fq_SECP256K1_1, SECP256K1_CURVE, 1);
 DEFINE_ECDSA(ECDSA_EC_PMUL_Solver, G1_1_G1SECP256K1, Fq_SECP256K1_1, Fq_SECP256K1_n);
+
+TEST(ECDSA_EC_PMUL, Correctness) { test_ecdsa_ec_unknown_pmul_correctness<ECDSA_EC_PMUL_Solver>(); }
 TEST(ECDSA_EC_PMUL, Performance) { test_ecdsa_ec_unknown_pmul<ECDSA_EC_PMUL_Solver>(); } 

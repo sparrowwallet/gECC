@@ -154,7 +154,10 @@ def generate_fp_test(out, name, f, k, width):
     # print(f.to_bytes(f.to_mont(b[0])))
     # f.mont_mul(f.to_bytes(f.to_mont(a[0])), f.to_bytes(f.to_mont(b[0])), f.to_bytes(f.p))
 
-def generate_ecdsa_test(out, f, width):
+def generate_ecdsa_test(out, f, ec, width):
+    # Set fixed seed for reproducible test constants
+    random.seed(42)
+
     e = 0x10D51CB90C0C0522E94875A2BEA7AB72299EBE7192E64EFE0573B1C77110E5C9
     priv_key = 0x128B2FA8BD433C6C068C8D803DFF79792A519A55171B1B650C23661D15897263
     k = 0xE11F5909F947D5BE08C84A22CE9F7C338F7CF4A5B941B9268025495D7D433071
@@ -163,15 +166,21 @@ def generate_ecdsa_test(out, f, width):
     # r = 0x23B20B796AAAFEAAA3F1592CB9B4A93D5A8D279843E1C57980E64E0ABC5F5B96
     key_x = 0xD5548C7825CBB56150A3506CD57464AF8A1AE0519DFAF3C58221DC810CAF28DD
     key_y = 0x921073768FE3D59CE54E79A49445CF73FED23086537027264D168946D479533E
-    
+
     n = 3972
     random_r = [random.randint(0, f.p - 1)  for i in range(n)]
     random_s = [random.randint(0, f.p - 1)  for i in range(n)]
     random_e = [random.randint(0, f.p - 1)  for i in range(n)]
     random_priv_key = [random.randint(0, f.p - 1)  for i in range(n)]
     random_k = [random.randint(0, f.p - 1)  for i in range(n)]
-    random_key_x = [random.randint(0, f.p - 1)  for i in range(n)]
-    random_key_y = [random.randint(0, f.p - 1)  for i in range(n)]
+
+    # Generate valid curve points for RANDOM_KEY_X and RANDOM_KEY_Y
+    random_key_x = []
+    random_key_y = []
+    for i in range(n):
+        point = ec.random_element()
+        random_key_x.append(point[0])
+        random_key_y.append(point[1])
     
     crepr = CRepr()
     crepr.width = width
@@ -778,6 +787,4 @@ if __name__ == '__main__':
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(
-            f, field.Fq_SECP256K1_n, field.Fq_SECP256K1_n.width)
-        # generate_ecdsa_test(
-        #     f, field.Fq_SECP256K1, ec.G1_SECP256K1, field.Fq_SECP256K1.width)
+            f, field.Fq_SECP256K1_n, ec.G1_SECP256K1, field.Fq_SECP256K1_n.width)
