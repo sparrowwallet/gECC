@@ -2,6 +2,7 @@ import field
 import ec
 import ec_ops
 import ccgen
+import constants
 
 import argparse
 import pathlib
@@ -209,6 +210,43 @@ def generate_ecdsa_test(out, f, ec, width):
         n, crepr.fp_array(random_priv_key)))
     out.write('static const uint64_t RANDOM_K[{}][MAX_LIMBS] = {};\n'.format(
         n, crepr.fp_array(random_k)))
+    out.write('static const uint64_t RANDOM_KEY_X[{}][MAX_LIMBS] = {};\n'.format(
+        n, crepr.fp_array(random_key_x)))
+    out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
+        n, crepr.fp_array(random_key_y)))
+
+def generate_ecdsa_fixed_test(out, f, ec, width):
+    """
+    Generate test constants for fixed-point multiplication using the secp256k1 generator point G.
+    All test cases use the same base point (G), only the scalars vary.
+    This is appropriate for testing the fixed-point multiplication algorithm.
+    """
+    # Set fixed seed for reproducible test constants
+    random.seed(43)  # Different seed from unknown-point test
+
+    # Get the generator point
+    g_x, g_y = constants.SECP256K1_g1_generator
+
+    n = 3972  # Same number of test cases as unknown-point test
+
+    # Generate random scalars
+    random_s = [random.randint(0, f.p - 1) for i in range(n)]
+
+    # For fixed-point multiplication, all base points are the generator G
+    # (In a real fixed-point multiplication setup, these would be the same point,
+    #  but we store them in arrays for compatibility with the existing test structure)
+    random_key_x = [g_x for i in range(n)]
+    random_key_y = [g_y for i in range(n)]
+
+    crepr = CRepr()
+    crepr.width = width
+
+    out.write('// ECDSA Fixed-Point Multiplication Test Constants\n')
+    out.write('// All base points are the secp256k1 generator G\n')
+    out.write('// Only scalars vary for each test case\n\n')
+
+    out.write('static const uint64_t RANDOM_S[{}][MAX_LIMBS] = {};\n'.format(
+        n, crepr.fp_array(random_s)))
     out.write('static const uint64_t RANDOM_KEY_X[{}][MAX_LIMBS] = {};\n'.format(
         n, crepr.fp_array(random_key_x)))
     out.write('static const uint64_t RANDOM_KEY_Y[{}][MAX_LIMBS] = {};\n'.format(
@@ -787,4 +825,8 @@ if __name__ == '__main__':
 
     with open(root / 'ecdsa_test_constants.h', 'w') as f:
         generate_ecdsa_test(
+            f, field.Fq_SECP256K1_n, ec.G1_SECP256K1, field.Fq_SECP256K1_n.width)
+
+    with open(root / 'ecdsa_fixed_test_constants.h', 'w') as f:
+        generate_ecdsa_fixed_test(
             f, field.Fq_SECP256K1_n, ec.G1_SECP256K1, field.Fq_SECP256K1_n.width)
