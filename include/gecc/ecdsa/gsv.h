@@ -1114,7 +1114,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     MAX_SM_NUMS = device_prop.multiProcessorCount;
     MAX_PersistingL2CacheSize = device_prop.persistingL2CacheMaxSize;
     accessPolicyMaxWindowSize = device_prop.accessPolicyMaxWindowSize;
-    printf("GPU Type: %s, SM_COUNT: %d PersistingL2CacheMaxSize %dMB, accessPolicyMaxWindowSize %dMB\n", device_prop.name, MAX_SM_NUMS, MAX_PersistingL2CacheSize>>20, accessPolicyMaxWindowSize>>20);
+    // printf("GPU Type: %s, SM_COUNT: %d PersistingL2CacheMaxSize %dMB, accessPolicyMaxWindowSize %dMB\n", device_prop.name, MAX_SM_NUMS, MAX_PersistingL2CacheSize>>20, accessPolicyMaxWindowSize>>20);
     cudaDeviceSynchronize();
     if (cudaPeekAtLastError() != cudaSuccess) {
       printf("Initilize Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
