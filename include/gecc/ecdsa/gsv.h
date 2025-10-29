@@ -1536,11 +1536,12 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     cudaMallocManaged(&verify_t, Order::SIZE * count);
     cudaMallocManaged(&R0, EC::Affine::SIZE * count);
     cudaMallocManaged(&R1, EC::Affine::SIZE * count);
-    // cudaMallocManaged(&acc_chain, EC::BaseField::SIZE * count * 2); 
+    // cudaMallocManaged(&acc_chain, EC::BaseField::SIZE * count * 2);
     cudaMallocManaged(&acc_chain, EC::BaseField::SIZE * count*2); // *2 is for upmul bk test
-    cudaMallocManaged(&lambda_n, EC::BaseField::SIZE * count*2); // *2 is for upmul bk test 
+    cudaMallocManaged(&lambda_n, EC::BaseField::SIZE * count*2); // *2 is for upmul bk test
     cudaMallocManaged(&lambda_den, EC::BaseField::SIZE * count*2); // *2 is for upmul bk test
-    u32 N = 3972;
+    // Fix: Use actual count instead of hardcoded N=3972 to support batches larger than 3972
+    u32 N = count;
     verify_key_x = R0;
     verify_key_y = R0 + EC::BaseField::LIMBS * count;
 
