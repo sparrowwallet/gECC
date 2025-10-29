@@ -1529,8 +1529,8 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
   }
 
 
-  // batch EC PMUL Breakdown Test
-  void ec_pmul_random_init(const u64 s[][MAX_LIMBS], const u64 key_x[][MAX_LIMBS], const u64 key_y[][MAX_LIMBS], u32 count) {
+  // batch EC PMUL initialization
+  void ec_pmul_init(const u64 s[][MAX_LIMBS], const u64 key_x[][MAX_LIMBS], const u64 key_y[][MAX_LIMBS], u32 count) {
     verify_count = count;
     cudaMallocManaged(&verify_s, Order::SIZE * count); //25MB
     cudaMallocManaged(&verify_t, Order::SIZE * count);

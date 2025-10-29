@@ -24,7 +24,7 @@ void test_modinv_in_data_parallel() {
     printf("--------------------------- %u (~1<< %d) --------------------------\n", count, ((int)log2(MAX_SM_NUMS)) + i);
 
     // solver.verify_init(R, S, E, KEY_X, KEY_Y, count);
-    solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+    solver.ec_pmul_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
     // warm up
     solver.batch_modinv_MTA(MAX_SM_NUMS<<2, 256);
     cudaDeviceSynchronize();

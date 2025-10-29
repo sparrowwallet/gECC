@@ -23,7 +23,7 @@ void test_ecdsa_ec_unknown_pmul() {
     count = MAX_SM_NUMS * (1<<i); //1<<18 ~ 1<<23
     printf("--------------------------- %u (%d << %d) --------------------------\n", count, MAX_SM_NUMS, i);
 
-    solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+    solver.ec_pmul_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
     // warm up
     solver.ecdsa_ec_pmul(MAX_SM_NUMS<<2, 256, true);
     cudaDeviceSynchronize();
@@ -68,7 +68,7 @@ void test_ecdsa_ec_unknown_pmul_correctness() {
   printf("Testing %u point multiplications\n\n", count);
 
   // Initialize with test data
-  solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+  solver.ec_pmul_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
 
   // Print inputs (first 3 samples)
   printf("Input scalars (s):\n");

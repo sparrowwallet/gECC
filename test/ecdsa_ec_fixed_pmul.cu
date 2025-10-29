@@ -30,7 +30,7 @@ void test_ecdsa_ec_fixed_pmul() {
     printf("--------------------------- %u (%d << %d) --------------------------\n", count, MAX_SM_NUMS, i);
 
     // solver.verify_init(R, S, E, KEY_X, KEY_Y, count);
-    solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+    solver.ec_pmul_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
     // warm up
     solver.ecdsa_ec_pmul(MAX_SM_NUMS<<2, 256, false);
     cudaDeviceSynchronize();

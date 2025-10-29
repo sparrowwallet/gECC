@@ -4,7 +4,7 @@
 The fixed-point multiplication test in `test/ecdsa_ec_fixed_pmul.cu` was producing incorrect results.
 
 ## Root Cause
-The test was calling `ec_pmul_random_init()` which populated R1 with arbitrary input points, but the batch kernel `fixedPMulByCombinedDAA` expected R1 to contain precomputed multiples of the generator G.
+The test was calling `ec_pmul_init()` which populated R1 with arbitrary input points, but the batch kernel `fixedPMulByCombinedDAA` expected R1 to contain precomputed multiples of the generator G.
 
 ## Solution
 Created a new test kernel that directly uses the `fixed_point_mult()` device function, which correctly accesses the precomputed table from device constant memory (`ECDSACONST.d_mul_table[]`).
@@ -21,7 +21,7 @@ Created a new test kernel that directly uses the `fixed_point_mult()` device fun
    - Stores results properly
 
 3. **Rewrote correctness test** `test_ecdsa_ec_fixed_pmul_correctness()`:
-   - Allocates memory directly (no `ec_pmul_random_init()`)
+   - Allocates memory directly (no `ec_pmul_init()`)
    - Calls the new test kernel
    - Reads results and prints them
 

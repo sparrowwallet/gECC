@@ -11,7 +11,7 @@ Fixed-point multiplication uses precomputed multiples of the secp256k1 generator
 
 These precomputed values are stored in `test/ecdsa_constants.h` as `G1_1_G1SECP256K1.SIG_AFF[]` and loaded into device constant memory `ECDSACONST.d_mul_table[]` during `initialize()`.
 
-**The problem**: The batch kernel `arith::fixedPMulByCombinedDAA` expects R1 to contain these precomputed multiples, but the current test calls `ec_pmul_random_init()` which overwrites R1 with input points instead.
+**The problem**: The batch kernel `arith::fixedPMulByCombinedDAA` expects R1 to contain these precomputed multiples, but the current test calls `ec_pmul_init()` which overwrites R1 with input points instead.
 
 ## Two Fixed-Point Implementations
 
@@ -50,9 +50,9 @@ __global__ void fixedPMulByCombinedDAA(typename EC::Base *R0,
 
 ```cpp
 // test/ecdsa_ec_fixed_pmul.cu
-solver.ec_pmul_random_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
+solver.ec_pmul_init(RANDOM_S, RANDOM_KEY_X, RANDOM_KEY_Y, count);
                            ↓
-// include/gecc/ecdsa/gsv.h:ec_pmul_random_init()
+// include/gecc/ecdsa/gsv.h:ec_pmul_init()
 processScalarPoint<<<>>>(..., R1, ...);  // ← Fills R1 with input points (WRONG!)
                            ↓
 solver.ecdsa_ec_pmul(MAX_SM_NUMS, 256, false);  // false = fixed-point
