@@ -1668,6 +1668,8 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     cudaFree(verify_s);
     cudaFree(verify_t);
     cudaFree(acc_chain);
+    cudaFree(lambda_n);
+    cudaFree(lambda_den);
     cudaFree(R0);
     cudaFree(R1);
   }
