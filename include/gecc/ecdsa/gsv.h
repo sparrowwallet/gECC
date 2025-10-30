@@ -1164,7 +1164,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     cudaMallocManaged(&sign_s, Order::SIZE * count);
     cudaMallocManaged(&sign_point, EC::Affine::SIZE * count);
     cudaMallocManaged(&fake_preprocess_points, EC::Affine::SIZE * count);
-    cudaMallocManaged(&acc_chain, EC::BaseField::SIZE * count); 
+    cudaMallocManaged(&acc_chain, EC::BaseField::SIZE * count);
     cudaMallocManaged(&xy_diff_list, EC::Affine::SIZE * count);
     cudaMemset(sign_point, 0, EC::Affine::SIZE * count);
     u32 N = 1 << 10;
@@ -1206,7 +1206,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       stream_attribute_thrashing.accessPolicyWindow.missProp =
           cudaAccessPropertyStreaming;
       cudaStreamSetAttribute(
-          stream, cudaStreamAttributeAccessPolicyWindow,
+          0, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       printf("Set Stream persistent L2 cache For ECDSA_Sign: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
     #endif
@@ -1418,7 +1418,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       stream_attribute_thrashing.accessPolicyWindow.missProp =
           cudaAccessPropertyStreaming;
       cudaStreamSetAttribute(
-          stream, cudaStreamAttributeAccessPolicyWindow,
+          0, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       // printf("Set Stream persistent L2 cache For ECDSA_Verify: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
       printf("Set Stream persistent L2 cache For ECDSA_Verify: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
