@@ -1206,7 +1206,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       stream_attribute_thrashing.accessPolicyWindow.missProp =
           cudaAccessPropertyStreaming;
       cudaStreamSetAttribute(
-          0, cudaStreamAttributeAccessPolicyWindow,
+          stream, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       printf("Set Stream persistent L2 cache For ECDSA_Sign: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
     #endif
@@ -1418,7 +1418,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       stream_attribute_thrashing.accessPolicyWindow.missProp =
           cudaAccessPropertyStreaming;
       cudaStreamSetAttribute(
-          0, cudaStreamAttributeAccessPolicyWindow,
+          stream, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       // printf("Set Stream persistent L2 cache For ECDSA_Verify: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
       printf("Set Stream persistent L2 cache For ECDSA_Verify: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", max(needed_bytes_pers_l2_cahce_size, min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize)) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
@@ -1593,7 +1593,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       stream_attribute_thrashing.accessPolicyWindow.missProp =
           cudaAccessPropertyStreaming;
       cudaStreamSetAttribute(
-          0, cudaStreamAttributeAccessPolicyWindow,
+          stream, cudaStreamAttributeAccessPolicyWindow,
           &stream_attribute_thrashing);
       // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
       // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS policy window size: %d MB), hitRatio %.2f\n", setted_pers_l2_cahce_size>>20, needed_bytes_pers_l2_cahce_size >> 20, accessPolicyMaxWindowSize >> 20, stream_attribute_thrashing.accessPolicyWindow.hitRatio);
