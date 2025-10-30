@@ -1296,11 +1296,11 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
   }
 
 
-  void batch_upmul_opt(u32 blc_num, u32 thd_num, u32 sharedMemSize) {
+  void batch_upmul_opt(u32 blc_num, u32 thd_num, u32 sharedMemSize, cudaStream_t stream = 0) {
     // fusion double-and-add alg based on batch-add opt
     cudaFuncSetAttribute((void *)(arith::scalarMulByCombinedDAA<EC, Field>), cudaFuncAttributeMaxDynamicSharedMemorySize, sharedMemSize);
-    arith::scalarMulByCombinedDAA<EC, Field><<<blc_num, thd_num, sharedMemSize>>>(R0, R1, verify_t, acc_chain, verify_count);
-    cudaDeviceSynchronize();
+    arith::scalarMulByCombinedDAA<EC, Field><<<blc_num, thd_num, sharedMemSize, stream>>>(R0, R1, verify_t, acc_chain, verify_count);
+    cudaStreamSynchronize(stream);
     if (cudaPeekAtLastError() != cudaSuccess) {
       printf("batch_upmul_opt:scalarMulByCombinedDAA Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
     }
@@ -1530,7 +1530,7 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
 
 
   // batch EC PMUL initialization
-  void ec_pmul_init(const u64 s[][MAX_LIMBS], const u64 key_x[][MAX_LIMBS], const u64 key_y[][MAX_LIMBS], u32 count) {
+  void ec_pmul_init(const u64 s[][MAX_LIMBS], const u64 key_x[][MAX_LIMBS], const u64 key_y[][MAX_LIMBS], u32 count, cudaStream_t stream = 0) {
     verify_count = count;
     cudaMallocManaged(&verify_s, Order::SIZE * count); //25MB
     cudaMallocManaged(&verify_t, Order::SIZE * count);
@@ -1567,9 +1567,9 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
     }
 #endif
 
-    cudaDeviceSynchronize();
-    processScalarPoint<EC, Field, Order><<< (verify_count + 256 - 1) / 256, 256>>>(verify_t, verify_key_x, verify_key_y, R1, verify_count);
-    cudaMemset(R0, 0, EC::Affine::SIZE * count);
+    cudaStreamSynchronize(stream);
+    processScalarPoint<EC, Field, Order><<< (verify_count + 256 - 1) / 256, 256, 0, stream>>>(verify_t, verify_key_x, verify_key_y, R1, verify_count);
+    cudaMemsetAsync(R0, 0, EC::Affine::SIZE * count, stream);
 
     P_CONST = R1;
     #ifdef PERSISTENT_L2_CACHE
@@ -1598,44 +1598,44 @@ template <typename BaseField, typename BaseOrder, typename EC, const ECDSAConsta
       // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS: %d MB)\n", min(needed_bytes_pers_l2_cahce_size, MAX_PersistingL2CacheSize) / 1024 / 1024, needed_bytes_pers_l2_cahce_size /1024/1024, MAX_PersistingL2CacheSize /1024/1024);
       // printf("Set Stream persistent L2 cache For ECDSA_EC_PMUL: %dMB (needed %d MB, MAX L2 PERS policy window size: %d MB), hitRatio %.2f\n", setted_pers_l2_cahce_size>>20, needed_bytes_pers_l2_cahce_size >> 20, accessPolicyMaxWindowSize >> 20, stream_attribute_thrashing.accessPolicyWindow.hitRatio);
     #endif
-      cudaDeviceSynchronize();
+      cudaStreamSynchronize(stream);
   }
 
-  void ecdsa_ec_pmul(u32 block_num = 480, u32 max_thread_per_block = 512, bool is_unknown_points = true) {
+  void ecdsa_ec_pmul(u32 block_num = 480, u32 max_thread_per_block = 512, bool is_unknown_points = true, cudaStream_t stream = 0) {
     u32 sharedMemSize = Field::SIZE * max_thread_per_block * 2;
     if (is_unknown_points) {
       // unknown_point_mult
       #ifdef EC_UPMUL_BASE
-        kernel_ec_pmul_daa<EC, Field, Order, ECDSASolver><<<block_num, max_thread_per_block>>>(verify_count, verify_t, R1, R0, true);
+        kernel_ec_pmul_daa<EC, Field, Order, ECDSASolver><<<block_num, max_thread_per_block, 0, stream>>>(verify_count, verify_t, R1, R0, true);
       #else
         #ifdef BATCH_UPMUL_NO_OPT
           int bit_index = Field::BITS-1;
           sharedMemSize = Field::SIZE * max_thread_per_block * 4;
           cudaFuncSetAttribute((void *)(arith::UPMULDoubleAndAddWithMT<EC, Field>), cudaFuncAttributeMaxDynamicSharedMemorySize, sharedMemSize);
-          arith::UPMULDoubleAndAddWithMT<EC, Field><<<block_num, max_thread_per_block, sharedMemSize>>>(R0, R1, verify_t, acc_chain, lambda_n, lambda_den, bit_index, verify_count);
+          arith::UPMULDoubleAndAddWithMT<EC, Field><<<block_num, max_thread_per_block, sharedMemSize, stream>>>(R0, R1, verify_t, acc_chain, lambda_n, lambda_den, bit_index, verify_count);
         #else
-          batch_upmul_opt(block_num, max_thread_per_block, sharedMemSize);
+          batch_upmul_opt(block_num, max_thread_per_block, sharedMemSize, stream);
         #endif
       #endif
-      cudaDeviceSynchronize();
+      cudaStreamSynchronize(stream);
       if (cudaPeekAtLastError() != cudaSuccess) {
         printf("unknown point pmul Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
       }
     } else {
       // fixed_point_mult
       #ifdef EC_FPMUL_BASE
-        kernel_ec_pmul_daa<EC, Field, Order, ECDSASolver><<<block_num, max_thread_per_block>>>(verify_count, verify_t, R1, R0, false);
+        kernel_ec_pmul_daa<EC, Field, Order, ECDSASolver><<<block_num, max_thread_per_block, 0, stream>>>(verify_count, verify_t, R1, R0, false);
       #else
         #ifdef BATCH_FPMUL_NO_OPT
-          // add breakdown-1 test 
+          // add breakdown-1 test
           cudaFuncSetAttribute((void *)(arith::FPMULDoubleAndAddWithMT<EC, Field>), cudaFuncAttributeMaxDynamicSharedMemorySize, sharedMemSize);
-          arith::FPMULDoubleAndAddWithMT<EC, Field><<<block_num, max_thread_per_block, sharedMemSize>>>(R0, R1, verify_t, acc_chain, lambda_n, lambda_den, verify_count);
+          arith::FPMULDoubleAndAddWithMT<EC, Field><<<block_num, max_thread_per_block, sharedMemSize, stream>>>(R0, R1, verify_t, acc_chain, lambda_n, lambda_den, verify_count);
         #else
           cudaFuncSetAttribute((void *)(arith::fixedPMulByCombinedDAA<EC, Field>), cudaFuncAttributeMaxDynamicSharedMemorySize, sharedMemSize);
-          arith::fixedPMulByCombinedDAA<EC, Field><<<block_num, max_thread_per_block, sharedMemSize>>>(R0, R1, verify_t, acc_chain, verify_count);
+          arith::fixedPMulByCombinedDAA<EC, Field><<<block_num, max_thread_per_block, sharedMemSize, stream>>>(R0, R1, verify_t, acc_chain, verify_count);
         #endif
       #endif
-      cudaDeviceSynchronize();
+      cudaStreamSynchronize(stream);
       if (cudaPeekAtLastError() != cudaSuccess) {
         printf("fixed point mul Error: %s\n", cudaGetErrorString(cudaPeekAtLastError()));
       }
